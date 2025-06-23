@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import QuestionCard from './QuestionCard';
 import ProgressBar from './ProgressBar';
 import ResultsPage from '../results/ResultsPage';
@@ -8,6 +9,7 @@ import { personalityQuestions, calculatePersonalityType } from '../../data/quest
 import { submitAssessment } from '../../utils/api/assessmentApi';
 
 const AssessmentFlow = () => {
+  // State logic (assume same as your previous code)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [assessmentComplete, setAssessmentComplete] = useState(false);
@@ -36,52 +38,39 @@ const AssessmentFlow = () => {
   };
 
   const handleCompleteAssessment = async () => {
-  setLoading(true);
-  setError(null);
+    setLoading(true);
+    setError(null);
 
-  try {
-    // Calculate personality type
-    const responses = Object.values(answers);
-    const personalityType = calculatePersonalityType(responses);
+    try {
+      const responses = Object.values(answers);
+      const personalityType = calculatePersonalityType(responses);
 
-    // Debug logs
-    console.log('🔍 Raw answers object:', answers);
-    console.log('🔍 Responses array:', responses);
-    console.log('🔍 Personality type:', personalityType);
+      const formattedResponses = Object.entries(answers).map(([questionId, selectedOption]) => ({
+        questionId: parseInt(questionId),
+        selectedOption: selectedOption
+      }));
 
-    // FIX: Format responses correctly for backend
-    const formattedResponses = Object.entries(answers).map(([questionId, selectedOption]) => ({
-      questionId: parseInt(questionId), // Ensure questionId is a number
-      selectedOption: selectedOption    // This already has text, value, points
-    }));
+      const assessmentData = {
+        userId: `user_${Date.now()}`,
+        responses: formattedResponses,
+        personalityType: personalityType
+      };
 
-    // Prepare data for backend
-    const assessmentData = {
-      userId: `user_${Date.now()}`,
-      responses: formattedResponses, // Use formatted responses
-      personalityType: personalityType
-    };
+      const result = await submitAssessment(assessmentData);
 
-    console.log('📤 Sending to backend:', assessmentData);
-
-    // Submit to backend
-    const result = await submitAssessment(assessmentData);
-    
-    if (result.success) {
-      setPersonalityResult(personalityType);
-      setSavedAssessmentId(result.assessment._id);
-      setAssessmentComplete(true);
-      console.log('✅ Assessment saved with ID:', result.assessment._id);
-    } else {
-      throw new Error(result.message || 'Failed to save assessment');
+      if (result.success) {
+        setPersonalityResult(personalityType);
+        setSavedAssessmentId(result.assessment._id);
+        setAssessmentComplete(true);
+      } else {
+        throw new Error(result.message || 'Failed to save assessment');
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to save your assessment. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Assessment submission error:', error);
-    setError(error.response?.data?.message || 'Failed to save your assessment. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handlePrevious = () => {
     if (!isFirst) {
@@ -100,7 +89,7 @@ const AssessmentFlow = () => {
 
   const handleShareResults = () => {
     const shareText = `I just discovered I'm an ${personalityResult} personality type! Take the assessment to find out yours.`;
-    
+
     if (navigator.share) {
       navigator.share({
         title: 'My Personality Assessment Results',
@@ -120,10 +109,18 @@ const AssessmentFlow = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md mx-auto">
-          <LoadingSpinner message="Calculating your personality type..." />
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+        <motion.div 
+          className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/50 p-8 max-w-md w-full"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <LoadingSpinner message="Analyzing your responses..." />
+          <p className="text-center text-gray-600 mt-4">
+            Discovering your unique personality profile
+          </p>
+        </motion.div>
       </div>
     );
   }
@@ -131,10 +128,18 @@ const AssessmentFlow = () => {
   // Error state
   if (error && !assessmentComplete) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md mx-auto">
-          <ErrorMessage message={error} onRetry={handleRetrySubmission} />
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
+        <motion.div 
+          className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/50 p-8 max-w-md w-full"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <ErrorMessage 
+            message={error} 
+            onRetry={handleRetrySubmission} 
+            retryLabel="Retry Submission"
+          />
+        </motion.div>
       </div>
     );
   }
@@ -153,17 +158,28 @@ const AssessmentFlow = () => {
 
   // Assessment flow
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-8">
-      <div className="container mx-auto px-4">
+    <motion.div 
+      className="min-h-screen pt-32 bg-gradient-to-br from-blue-50 to-purple-50 py-10 px-4 sm:px-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+        <motion.div 
+          className="text-center mb-10"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-3">
             Personality Assessment
           </h1>
-          <p className="text-lg text-gray-600">
-            Discover your unique personality type through our comprehensive evaluation
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Answer honestly to discover your true personality type
           </p>
-        </div>
+          <div className="w-20 h-1 bg-gradient-to-r from-teal-500 to-orange-400 rounded-full mx-auto mt-4"></div>
+        </motion.div>
 
         {/* Progress Bar */}
         <ProgressBar 
@@ -182,14 +198,20 @@ const AssessmentFlow = () => {
           isLast={isLast}
         />
 
-        {/* Footer */}
-        <div className="text-center mt-8">
-          <p className="text-sm text-gray-500">
-            Your responses are securely saved and anonymous
+        {/* Security Assurance */}
+        <motion.div 
+          className="text-center mt-10"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+        >
+          <p className="text-sm text-gray-500 inline-flex items-center justify-center">
+            <span className="mr-2 text-green-500 text-lg" role="img" aria-label="lock">🔒</span>
+            Your responses are encrypted and never shared
           </p>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

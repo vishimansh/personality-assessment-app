@@ -2,26 +2,38 @@ import React from 'react';
 import { personalityTypes } from '../../data/personalityTypes';
 
 const ResultsPage = ({ personalityType, assessmentId, onRetakeAssessment, onShareResults }) => {
-  const typeData = personalityTypes[personalityType];
+  // Normalize personalityType to uppercase
+  const normalizedType = personalityType?.toUpperCase();
+  const typeData = normalizedType ? personalityTypes[normalizedType] : null;
   
   if (!typeData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-blue-50">
+        <div className="text-center p-8 bg-white/80 backdrop-blur-md rounded-2xl shadow-lg max-w-md">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Unable to determine personality type
+            {personalityType ? `Unknown Type: ${personalityType}` : "No Results Found"}
           </h2>
+          <p className="text-gray-600 mb-6">
+            We couldn't determine your personality type. Please retake the assessment.
+          </p>
           <button
             onClick={onRetakeAssessment}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+            className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all"
           >
             Retake Assessment
           </button>
+          
+          {assessmentId && (
+            <p className="mt-4 text-sm text-gray-500">
+              Assessment ID: {assessmentId.slice(-8)}
+            </p>
+          )}
         </div>
       </div>
     );
   }
 
+  // The main results page content
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-8">
       <div className="container mx-auto px-4 max-w-4xl">
@@ -41,7 +53,7 @@ const ResultsPage = ({ personalityType, assessmentId, onRetakeAssessment, onShar
         <div className="text-center mb-8">
           <div className="mb-6">
             <div className={`inline-block bg-gradient-to-r ${typeData.color} text-white px-8 py-4 rounded-full text-6xl font-bold mb-4`}>
-              {personalityType}
+              {normalizedType}
             </div>
           </div>
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
