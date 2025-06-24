@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import Navbar from '../common/Navbar';
 import QuestionCard from './QuestionCard';
 import ProgressBar from './ProgressBar';
 import ResultsPage from '../results/ResultsPage';
@@ -9,11 +10,13 @@ import { personalityQuestions, calculatePersonalityType } from '../../data/quest
 import { submitAssessment } from '../../utils/api/assessmentApi';
 
 const AssessmentFlow = () => {
-  // State logic (assume same as your previous code)
+  // State logic
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [assessmentComplete, setAssessmentComplete] = useState(false);
   const [personalityResult, setPersonalityResult] = useState(null);
+  const [traitScores, setTraitScores] = useState(null);
+  const [preferencePercentages, setPreferencePercentages] = useState(null); // NEW: Preference percentages state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [savedAssessmentId, setSavedAssessmentId] = useState(null);
@@ -43,7 +46,13 @@ const AssessmentFlow = () => {
 
     try {
       const responses = Object.values(answers);
-      const personalityType = calculatePersonalityType(responses);
+      
+      // Calculate personality type, trait scores, and preference percentages
+      const { 
+        personalityType, 
+        traitScores, 
+        preferencePercentages  // NEW: Capture preference percentages
+      } = calculatePersonalityType(responses);
 
       const formattedResponses = Object.entries(answers).map(([questionId, selectedOption]) => ({
         questionId: parseInt(questionId),
@@ -53,13 +62,17 @@ const AssessmentFlow = () => {
       const assessmentData = {
         userId: `user_${Date.now()}`,
         responses: formattedResponses,
-        personalityType: personalityType
+        personalityType: personalityType,
+        traitScores: traitScores,
+        preferencePercentages: preferencePercentages  // NEW: Include in payload
       };
 
       const result = await submitAssessment(assessmentData);
 
       if (result.success) {
         setPersonalityResult(personalityType);
+        setTraitScores(traitScores);
+        setPreferencePercentages(preferencePercentages);  // NEW: Set state
         setSavedAssessmentId(result.assessment._id);
         setAssessmentComplete(true);
       } else {
@@ -83,6 +96,8 @@ const AssessmentFlow = () => {
     setAnswers({});
     setAssessmentComplete(false);
     setPersonalityResult(null);
+    setTraitScores(null);
+    setPreferencePercentages(null);  // NEW: Reset preference percentages
     setError(null);
     setSavedAssessmentId(null);
   };
@@ -144,11 +159,13 @@ const AssessmentFlow = () => {
     );
   }
 
-  // Results page
+  // Results page (NO NAVBAR)
   if (assessmentComplete) {
     return (
       <ResultsPage
         personalityType={personalityResult}
+        traitScores={traitScores}
+        preferencePercentages={preferencePercentages}  // NEW: Pass to ResultsPage
         assessmentId={savedAssessmentId}
         onRetakeAssessment={handleRetakeAssessment}
         onShareResults={handleShareResults}
@@ -156,62 +173,65 @@ const AssessmentFlow = () => {
     );
   }
 
-  // Assessment flow
+  // Assessment flow (NAVBAR VISIBLE)
   return (
-    <motion.div 
-      className="min-h-screen pt-32 bg-gradient-to-br from-blue-50 to-purple-50 py-10 px-4 sm:px-6"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <motion.div 
-          className="text-center mb-10"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-3">
-            Personality Assessment
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Answer honestly to discover your true personality type
-          </p>
-          <div className="w-20 h-1 bg-gradient-to-r from-teal-500 to-orange-400 rounded-full mx-auto mt-4"></div>
-        </motion.div>
+    <>
+      <Navbar />
+      <motion.div 
+        className="min-h-screen pt-32 bg-gradient-to-br from-blue-50 to-purple-50 py-10 px-4 sm:px-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <motion.div 
+            className="text-center mb-10"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 mb-3">
+              Personality Assessment
+            </h1>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Answer honestly to discover your true personality type
+            </p>
+            <div className="w-20 h-1 bg-gradient-to-r from-teal-500 to-orange-400 rounded-full mx-auto mt-4"></div>
+          </motion.div>
 
-        {/* Progress Bar */}
-        <ProgressBar 
-          currentQuestion={currentQuestionIndex + 1}
-          totalQuestions={personalityQuestions.length}
-        />
+          {/* Progress Bar */}
+          <ProgressBar 
+            currentQuestion={currentQuestionIndex + 1}
+            totalQuestions={personalityQuestions.length}
+          />
 
-        {/* Question Card */}
-        <QuestionCard
-          question={currentQuestion}
-          onAnswerSelect={handleAnswerSelect}
-          selectedAnswer={answers[currentQuestion.id]?.text || ''}
-          onNext={handleNext}
-          onPrevious={handlePrevious}
-          isFirst={isFirst}
-          isLast={isLast}
-        />
+          {/* Question Card */}
+          <QuestionCard
+            question={currentQuestion}
+            onAnswerSelect={handleAnswerSelect}
+            selectedAnswer={answers[currentQuestion.id]?.text || ''}
+            onNext={handleNext}
+            onPrevious={handlePrevious}
+            isFirst={isFirst}
+            isLast={isLast}
+          />
 
-        {/* Security Assurance */}
-        <motion.div 
-          className="text-center mt-10"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <p className="text-sm text-gray-500 inline-flex items-center justify-center">
-            <span className="mr-2 text-green-500 text-lg" role="img" aria-label="lock">🔒</span>
-            Your responses are encrypted and never shared
-          </p>
-        </motion.div>
-      </div>
-    </motion.div>
+          {/* Security Assurance */}
+          <motion.div 
+            className="text-center mt-10"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <p className="text-sm text-gray-500 inline-flex items-center justify-center">
+              <span className="mr-2 text-green-500 text-lg" role="img" aria-label="lock">🔒</span>
+              Your responses are encrypted and never shared
+            </p>
+          </motion.div>
+        </div>
+      </motion.div>
+    </>
   );
 };
 

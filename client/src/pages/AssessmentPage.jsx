@@ -5,7 +5,7 @@ import AssessmentFlow from '../components/assessment/AssessmentFlow';
 const AssessmentPage = () => {
   return (
     <div className="min-h-screen">
-      <Navbar />
+
       <div>
         <AssessmentFlow />
       </div>

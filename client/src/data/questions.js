@@ -360,7 +360,14 @@ export const personalityQuestions = [
   }
 ];
 
-// Simplified scoring system
+// Trait score calculation function
+const normalizeTrait = (rawScore, rawMax) => {
+  const minVal = 45;
+  const maxVal = 95;
+  return Math.round(minVal + (rawScore / rawMax) * (maxVal - minVal));
+};
+
+// Updated scoring system
 export const calculatePersonalityType = (responses) => {
   const scores = {
     E: 0, I: 0,
@@ -379,7 +386,33 @@ export const calculatePersonalityType = (responses) => {
     (scores.T > scores.F ? 'T' : 'F') +
     (scores.J > scores.P ? 'J' : 'P');
 
-  return personalityType;
+  // Calculate trait scores using new formula
+  const traitScores = {
+    Leadership: normalizeTrait(scores.E + scores.J, 32),
+    Empathy: normalizeTrait(scores.F, 16),
+    Creativity: normalizeTrait(scores.N + scores.P, 32),
+    Organization: normalizeTrait(scores.J + scores.S, 32),
+    Rationality: normalizeTrait(scores.T, 16),
+    Resilience: normalizeTrait(scores.I + scores.T, 32)
+  };
+
+  // Calculate MBTI preference percentages
+  const preferencePercentages = {
+    E: Math.round((scores.E / (scores.E + scores.I)) * 100) || 0,
+    I: Math.round((scores.I / (scores.E + scores.I)) * 100) || 0,
+    S: Math.round((scores.S / (scores.S + scores.N)) * 100) || 0,
+    N: Math.round((scores.N / (scores.S + scores.N)) * 100) || 0,
+    T: Math.round((scores.T / (scores.T + scores.F)) * 100) || 0,
+    F: Math.round((scores.F / (scores.T + scores.F)) * 100) || 0,
+    J: Math.round((scores.J / (scores.J + scores.P)) * 100) || 0,
+    P: Math.round((scores.P / (scores.J + scores.P)) * 100) || 0
+  };
+
+  return {
+    personalityType,
+    traitScores,
+    preferencePercentages
+  };
 };
 
 export default personalityQuestions;
